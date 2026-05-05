@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pulse Chat</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:#101114;color:#fff}
+    .wrap{min-height:100vh;display:grid;place-items:center;padding:20px}
+    .box{width:min(950px,100%);background:#181b22;border:1px solid #303744;border-radius:10px;box-shadow:0 25px 70px #0008;overflow:hidden}
+    .login{display:grid;grid-template-columns:1fr 1fr}.hero{background:linear-gradient(135deg,#4f8cff66,#36d39933);padding:45px;display:grid;align-content:center}
+    .hero h1{font-size:54px;margin:0}.hero p{color:#d2d8e2}
+    form,.pad{padding:30px;display:grid;gap:14px}label{display:grid;gap:7px;color:#a8b0bd;font-weight:700}
+    input{padding:14px;border-radius:8px;border:1px solid #303744;background:#11141a;color:white}
+    button{border:0;border-radius:8px;padding:13px 17px;background:#4f8cff;color:white;font-weight:900;cursor:pointer}
+    .ghost{background:transparent;border:1px solid #303744}.hidden{display:none!important}.status{color:#ffb4c3;min-height:20px}
+    .caprow{display:grid;grid-template-columns:1fr auto;gap:10px}.cap{padding:14px;text-align:center;background:#20252f;border:1px dashed #566071;border-radius:8px;font-size:24px;font-weight:900;letter-spacing:3px}
+    .app{min-height:720px;display:grid;grid-template-columns:270px 1fr}.side{background:#14171d;border-right:1px solid #303744;padding:20px;display:grid;align-content:start;gap:14px}
+    .profile{display:flex;gap:12px;align-items:center}.avatar{width:48px;height:48px;border-radius:8px;background:#f7b84b;color:#111;display:grid;place-items:center;font-weight:900}
+    .tab.active{background:#fff;color:#111}.page{display:grid;grid-template-rows:auto 1fr auto;background:#11141a}
+    header{padding:20px;border-bottom:1px solid #303744;display:flex;justify-content:space-between;align-items:center}
+    .msgs{padding:20px;display:flex;flex-direction:column;gap:12px;overflow:auto}.bubble{max-width:72%;padding:13px;background:#20252f;border-radius:8px}.me{align-self:flex-end;background:#4f8cff}
+    .composer{padding:16px;border-top:1px solid #303744;display:grid;grid-template-columns:1fr auto;gap:10px}
+    .videos{padding:20px;display:grid;grid-template-columns:1fr 220px;gap:14px}.tile{min-height:260px;background:#20252f;border:1px solid #303744;border-radius:8px;overflow:hidden;display:grid;place-items:center}.main{min-height:500px}
+    video{width:100%;height:100%;object-fit:cover;background:#05070a}.controls{padding:16px;border-top:1px solid #303744;display:flex;gap:10px;align-items:center;justify-content:center}.end{background:#ff5a7a}
+    dialog{border:0;background:transparent}.db{width:min(850px,95vw);background:#181b22;border:1px solid #303744;border-radius:10px;padding:22px;color:white}table{width:100%;border-collapse:collapse}td,th{padding:11px;border-bottom:1px solid #303744;text-align:left}
+    @media(max-width:800px){.login,.app,.videos{grid-template-columns:1fr}.hero{display:none}.main{min-height:320px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section id="login" class="box login">
+    <div class="hero"><h1>Pulse Chat</h1><p>Real chat with Firebase and basic WebRTC video call.</p></div>
+    <form id="loginForm">
+      <h2>Login</h2>
+      <label>Name <input id="name" required placeholder="Your name"></label>
+      <label>Gmail ID <input id="email" type="email" required placeholder="name@gmail.com"></label>
+      <label>Password <input id="password" type="password" required placeholder="Firebase password"></label>
+      <div class="caprow">
+        <label>Captcha <input id="capInput" required placeholder="Enter code"></label>
+        <button type="button" id="refresh">REF</button>
+      </div>
+      <div id="cap" class="cap"></div>
+      <button>Enter Chat</button>
+      <button type="button" class="ghost" id="openDb">Open Database</button>
+      <div id="status" class="status"></div>
+    </form>
+  </section>
+
+  <section id="appBox" class="box app hidden">
+    <aside class="side">
+      <div class="profile"><div id="avatar" class="avatar">U</div><div><b id="uName">User</b><br><small id="uEmail"></small></div></div>
+      <button id="chatTab" class="tab active">Chats</button>
+      <button id="vcTab" class="tab">Video Call</button>
+      <button id="logout" class="ghost">Sign Out</button>
+    </aside>
+
+    <main id="chatPage" class="page">
+      <header><h2>Friend Chat</h2><button id="goVc">VC</button></header>
+      <div id="msgs" class="msgs"></div>
+      <form id="msgForm" class="composer"><input id="msgInput" placeholder="Message..."><button>Send</button></form>
+    </main>
+
+    <main id="vcPage" class="page hidden">
+      <header><h2>Video Call</h2><button id="backChat">Back</button></header>
+      <div class="videos">
+        <div class="tile main"><video id="remoteVideo" autoplay playsinline></video></div>
+        <div class="tile"><video id="localVideo" autoplay playsinline muted></video></div>
+      </div>
+      <div class="controls">
+        <button id="startCall">GO</button>
+        <button id="joinCall">IN</button>
+        <button id="mute">M</button>
+        <button id="cam">C</button>
+        <button id="endCall" class="end">END</button>
+        <span id="callStatus">Ready</span>
+      </div>
+    </main>
+  </section>
+</div>
+
+<dialog id="dbDialog">
+  <div class="db">
+    <h2>Database</h2>
+    <div id="dbLock">
+      <label>Database Password <input id="dbPass" type="password" placeholder="Database password"></label><br>
+      <button id="unlock">Unlock</button>
+      <button id="closeDb" class="ghost">Close</button>
+      <p id="dbStatus" class="status"></p>
+    </div>
+    <div id="dbTable" class="hidden"></div>
+  </div>
+</dialog>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+// 🔥 SAME FIREBASE (NO CHANGE)
+const firebaseConfig = {
+  apiKey: "AIzaSyCh_YBaUAe9gxnQR3d3ePM3N94RrstBrZI",
+  authDomain: "chatting-9de75.firebaseapp.com",
+  projectId: "chatting-9de75",
+  storageBucket: "chatting-9de75.appspot.com",
+  messagingSenderId: "391566075997",
+  appId: "1:391566075997:web:0b2d4f279fabf976a045b4",
+  measurementId: "G-SQQMY7W4WQ"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+
+let cap = "";
+let userProfile = null;
+let unsubMsgs = null;
+
+// 🔥 Better UI chat detection
+function isMe(name){
+  return userProfile && name === userProfile.name;
+}
+
+// Escape
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, c =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" }[c])
+  );
+}
+
+// CAPTCHA
+function newCap(){
+  let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  cap = "";
+  for(let i=0;i<6;i++){
+    cap += chars[Math.floor(Math.random()*chars.length)];
+  }
+  $("cap").textContent = cap;
+}
+
+// ENTER APP
+function enter(){
+  $("login").classList.add("hidden");
+  $("appBox").classList.remove("hidden");
+  listenMessages();
+}
+
+// 💬 REAL TIME CHAT (UI UPGRADE ONLY)
+function listenMessages(){
+  if(unsubMsgs) unsubMsgs();
+
+  let q = query(
+    collection(db,"rooms","main-room","messages"),
+    orderBy("createdAt"),
+    limit(100)
+  );
+
+  unsubMsgs = onSnapshot(q, snap => {
+    $("msgs").innerHTML = snap.docs.map(d => {
+      let m = d.data();
+
+      let mine = isMe(m.senderName);
+
+      return `
+        <div class="bubble ${mine ? "me" : ""}" 
+             style="${mine ? "background:#4f8cff;margin-left:auto;text-align:right" : ""}">
+          ${esc(m.text)}
+          <br>
+          <small>${esc(m.senderName)}</small>
+        </div>
+      `;
+    }).join("");
+
+    $("msgs").scrollTop = $("msgs").scrollHeight;
+  });
+}
+
+// LOGIN (NO CHANGE IN SYSTEM)
+$("loginForm").onsubmit = async e => {
+  e.preventDefault();
+
+  let name = $("name").value;
+  let email = $("email").value;
+  let pass = $("password").value;
+  let userCap = $("capInput").value;
+
+  if(userCap !== cap){
+    alert("Captcha wrong ❌");
+    newCap();
+    $("capInput").value = "";
+    return;
+  }
+
+  const ref = doc(db,"users",email);
+  const snap = await getDoc(ref);
+
+  if(!snap.exists()){
+    await setDoc(ref,{name,email,password:pass});
+    userProfile = {name,email};
+    enter();
+  }else{
+    let data = snap.data();
+    if(data.password === pass){
+      userProfile = data;
+      enter();
+    }else{
+      alert("Wrong password ❌");
+    }
+  }
+};
+
+// SEND MESSAGE (UNCHANGED DATA STRUCTURE)
+$("msgForm").onsubmit = async e => {
+  e.preventDefault();
+
+  let text = $("msgInput").value;
+  $("msgInput").value = "";
+
+  await addDoc(collection(db,"rooms","main-room","messages"),{
+    text,
+    senderName: userProfile.name,
+    createdAt: serverTimestamp()
+  });
+};
+
+// Logout
+$("logout").onclick = () => {
+  $("appBox").classList.add("hidden");
+  $("login").classList.remove("hidden");
+};
+
+// Refresh captcha
+$("refresh").onclick = newCap;
+
+newCap();
+</script>
+</body>
+</html>
